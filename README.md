@@ -1,18 +1,21 @@
 # [Deno] Zod Factory 
 
 <small>
+<small>
+
 A factory is a function that generates mock data based on a given schema. It is useful for generating test data for your application.
-</small>
+
 
 ### Peer Dependencies 
 > _Required dependencies for factory to work_
-<small>
+
 
 
 - `https://deno.land/x/zod@v3.23.8/mod.ts`
 
 - `https://esm.sh/@faker-js/faker@8.4.1`
-</small>
+
+
 
 ## Usage
 <small>
@@ -22,6 +25,8 @@ To set up a factory for a deeply nested schema using the `faker` callback, you f
 ### Step 1: Define a Simple Zod Schema
 
 > _First, we'll define a simple schema using Zod for a user profile:_
+
+<small>
 
 ```typescript
 import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts';  // Define a simple Zod schema for a user profile
@@ -33,6 +38,7 @@ export const UserSchema = z.object({
     age: z.number().int().positive() // User's age 
 });
 ```
+
 
 ### Step 2. Define a Simple Zod Factory
 
@@ -336,3 +342,133 @@ In this setup:
 ### Conclusion
 
 By using a `faker` callback with a deeply nested schema, you can effectively create complex mock data structures that conform to your application's requirements. This approach ensures that you have realistic, varied test data for all your testing and development needs.
+
+</small>
+
+<small>
+Test Coverage: 
+High test coverage percentage
+</small>
+
+---
+<small>
+<small>
+<small>
+
+```bash
+Factory - basic creation tests ...
+  factory - create ... ok
+  factory - create with custom attributes ... ok 
+  factory - createMany ... ok
+  factory - createMany with custom attributes ... ok 
+Factory - basic creation tests ... ok
+Factory - raw tests ...
+  factory - raw ... ok 
+  factory - raw with custom attributes ... ok 
+Factory - raw tests ... ok 
+Factory - state tests ...
+  factory - state ... ok 
+  factory - state with faker ...
+------- output -------
+[@faker-js/faker]: faker.name is deprecated since v8.0 and will be removed in v10.0. Please use faker.person instead.
+----- output end -----
+  factory - state with faker ... ok
+Factory - state tests ... ok
+Factory - input validation tests ...
+  factory - handle invalid attribute types ... ok 
+  factory - handle missing required attributes ... ok
+Factory - input validation tests ... ok 
+Factory - performance tests ...
+  factory - performance test for createMany ...
+------- output -------
+Performance test: createMany(100) took 5908ms
+----- output end -----
+  factory - performance test for createMany ... ok 
+Factory - performance tests ... ok 
+Factory - complex schema tests ...
+  complex factory - create validates against schema ... ok 
+  complex factory - create sets default user name ... ok 
+  complex factory - create with deep profile override ...
+  complex factory - create with deep profile override ... ok 
+  complex factory - create with deep settings override ...
+  complex factory - create with deep settings override ... ok (53ms)
+  complex factory - implement with transform ...
+------- output -------
+{
+  "street": "95824 Romaguera Loop",
+  "city": "Fort Benny",
+  "state": "AL",
+  "zip": "17806",
+  "county": "Nottinghamshire",
+  "sale_date": "2024-10-03",
+  "sale_time": "4:34:58 AM",
+  "continued_date_time": "N/A",
+  "opening_bid": "$200,000",
+  "sale_location": "New Orin",
+  "firm_file_number": "084439307"
+}
+----- output end -----
+  complex factory - implement with transform ... ok 
+Factory - complex schema tests ... ok
+Factory - Randomness and Uniqueness ...
+  complex factory - createMany generates unique IDs ... ok 
+  complex factory - createMany generates unique emails ... ok 
+Factory - Randomness and Uniqueness ... ok 
+  should generate a mock object using faker ... ok
+  should generate mock data of the appropriate type when the field names overlap Faker properties that are not valid functions ... ok
+  Should manually mock string key names to set values ... ok
+  should convert values produced by Faker to string when the schema type is string. ... ok
+  should support generating date strings via Faker for keys of 'date' and 'dateTime'. ... ok 
+  should correctly generate date strings for date validated strings ... ok 
+  should create mock strings that respect the specified min and max lengths (inclusive) ... ok 
+  should respect the max length when the min is greater than the max ... ok 
+  should append extra string content to meet a minimum length ... ok 
+  should create mock strings that respect the specified length ... ok
+  should create mock dates that respect the specified min and max dates ... ok
+  should create Maps ... ok 
+  should use a user provided generator when a generator for the schema type cannot be found ... ok 
+  should use a user provided generator when a generator takes 2 arguments ... ok 
+  should work with objects and arrays ... ok 
+  should work with the README example ... ok 
+  throws an error when configured to if we have not implemented the type mapping ... ok 
+  ZodDefault ... ok 
+  ZodNativeEnum ... ok
+  ZodFunction ... ok 
+  ZodIntersection ... ok
+  ZodPromise ... ok 
+  ZodTuple ...
+    basic tuple ... ok
+    tuple with Rest args ... ok
+  ZodTuple ... ok 
+  ZodUnion ... ok 
+  Avoid depreciations in strings ... ok 
+  should generate strings from regex ... ok
+  should handle complex unions ... ok 
+  should handle discriminated unions ... ok 
+  should handle branded types ... ok 
+  ZodVoid ... ok 
+  ZodNull ... ok
+  ZodNaN ... ok 
+  ZodUndefined ... ok
+  ZodLazy ... ok 
+  Options seed value will return the same random numbers ... ok 
+  Options seed value will return the same union & enum members ... ok
+  Options seed value will return the same generated regex values ... ok
+  Can use my own version of faker ... ok 
+  Will mock sub objections properly ... ok
+  should handle various date constraints correctly ... ok 
+  should handle invalid date constraints ... ok 
+  should handle JSON type ... ok 
+zod-mock ... ok 
+Potential infinite loop or memory exhaustion tests ...
+  should handle deep recursive structures without stack overflow ...
+------- post-test output -------
+Generated nested structure with depth: 5
+----- post-test output end -----
+  should handle deep recursive structures without stack overflow ... ok
+  should handle cyclical references gracefully ... ok 
+Potential infinite loop or memory exhaustion tests ... ok
+
+</small>
+</small>
+</small>
