@@ -1,15 +1,53 @@
-# [Deno] Zod Factory 
+# 🏭 Zod Factory 
 
-<small>
-<small>
+> _A factory is a function that generates mock data based on a given schema. It's a powerful tool for developers, offering:_
 
-A factory is a function that generates mock data based on a given schema. It is useful for generating test data for your application.
+## Description 
+
+• 🧪 Easy generation of test data for your application
+
+• 🔄 Consistent and reproducible mock data creation
+
+• 📊 Support for complex, nested schemas
+
+• 🎭 Flexible customization of generated data
+
+• ⚡ Improved development speed and efficiency
+
+• 🐞 Enhanced testing capabilities for edge cases
 
 
-### Peer Dependencies 
-> _Required dependencies for factory to work_
 
+<small><small>
 
+## Quick Start
+
+```typescript
+import { z } from 'npm:zod@v3.23.8';
+import { faker } from 'npm:@faker-js/faker@8.4.1';
+import { factory } from 'jsr:@findhow/zod-factory@0.0.2';
+
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  age: z.number().int().positive()
+});
+
+const UserFactory = factory(UserSchema, (faker) => ({
+  id: faker.string.uuid(),
+  name: faker.person.fullName(),
+  email: faker.internet.email(),
+  age: faker.number.int({ min: 18, max: 99 })
+}));
+
+UserFactory.create();
+UserFactory.create({ name: 'John Doe' });
+
+UserFactory.createMany(10);
+UserFactory.createMany(3, { age: 25, email: faker.internet.email() })
+```
+## Dependencies
 
 - `https://deno.land/x/zod@v3.23.8/mod.ts`
 
@@ -29,7 +67,7 @@ To set up a factory for a deeply nested schema using the `faker` callback, you f
 <small>
 
 ```typescript
-import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts';  // Define a simple Zod schema for a user profile
+import { z } from 'npm:zod@v3.23.8';  // Define a simple Zod schema for a user profile
 
 export const UserSchema = z.object({   
     id: z.string().uuid(),           // Unique identifier for the user  
@@ -45,7 +83,8 @@ export const UserSchema = z.object({
 > _Now we'll define a simple factory using the `factory` function and the `UserSchema` we just created:_
 
 ```typescript 
-import { factory } from 'https://github.com/zhorton34/zod-factory/mod.ts';
+
+import { factory } from 'jsr:@findhow/zod-factory@0.0.2';
 import { UserSchema } from './user.schema.ts'
 
 export const UserFactory = factory(UserSchema, (faker) => ({
