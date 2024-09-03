@@ -1,7 +1,7 @@
 /**
  * This serves as a config file for mapping keynames to mock functions.
  */
-import { type Faker } from '@std/faker';
+import type { Faker } from '@std/faker';
 
 export type FakerFunction = () => string | number | boolean | Date;
 

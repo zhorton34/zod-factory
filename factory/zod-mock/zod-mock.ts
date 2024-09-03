@@ -1,16 +1,16 @@
 import { Faker, faker, en } from '@std/faker';
 import RandExp from '@std/randexp';
 import {
-    AnyZodObject,
+    type AnyZodObject,
     util,
     z,
-    ZodRecord,
-    ZodString,
-    ZodType,
-    ZodTypeAny,
+    type ZodRecord,
+    type ZodString,
+    type ZodType,
+    type ZodTypeAny,
 } from '@std/zod';
 import {
-    MockeryMapper,
+    type MockeryMapper,
     mockeryMapper as defaultMapper,
 } from './zod-mockery-map.ts';
 
