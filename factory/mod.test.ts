@@ -13,13 +13,13 @@ const TestSchema = z.object({
 
 type TestType = z.infer<typeof TestSchema>;
 
-const testFactory = factory(TestSchema, (faker) => ({ age: 30 }));
+const testFactory = factory(TestSchema, (_faker) => ({ age: 30 }));
 
 function validateSchema<T>(schema: z.ZodTypeAny, data: T) {
     const result = schema.safeParse(data);
     if (!result.success) {
         console.error('Schema validation failed:', JSON.stringify(result.error.issues, null, 2));
-        console.error('Invalid data:', JSON.stringify(data, (key, value) =>
+        console.error('Invalid data:', JSON.stringify(data, (_key, value) =>
             typeof value === 'object' && value instanceof Date
                 ? value.toISOString()
                 : value
@@ -100,7 +100,7 @@ Deno.test("Factory - input validation tests", async (t) => {
     await t.step('factory - handle invalid attribute types', () => {
         assertThrows(
             () => {
-                testFactory.create({ age: -10 } as any);
+                testFactory.create({ age: -10 } as Record<string, unknown>);
             },
             Error,
             'Invalid input',
@@ -110,7 +110,7 @@ Deno.test("Factory - input validation tests", async (t) => {
     await t.step('factory - handle missing required attributes', () => {
         assertThrows(
             () => {
-                testFactory.create({ name: undefined } as any);
+                testFactory.create({ name: undefined } as Record<string, unknown>);
             },
             Error,
             'Invalid input',
@@ -121,9 +121,7 @@ Deno.test("Factory - input validation tests", async (t) => {
 // Performance Tests
 Deno.test("Factory - performance tests", async (t) => {
     await t.step('factory - performance test for createMany', () => {
-        const start = performance.now();
         const results = testFactory.createMany(1000);
-        const end = performance.now();
         assertEquals(results.length, 1000);
     });
 })
@@ -160,7 +158,7 @@ Deno.test("Factory - complex schema tests", async (t) => {
         }),
     });
 
-    let complexFactory = factory(ComplexSchema, (faker) => ({
+    const complexFactory = factory(ComplexSchema, (faker) => ({
         id: faker.string.uuid(),
         user: {
             name: 'Default User',

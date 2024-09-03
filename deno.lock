@@ -4,8 +4,10 @@
     "specifiers": {
       "jsr:@std/assert@1.0.0-rc.2": "jsr:@std/assert@1.0.0-rc.2",
       "jsr:@std/internal@^1.0.0": "jsr:@std/internal@1.0.2",
+      "npm:@faker-js/faker@8.4.1": "npm:@faker-js/faker@8.4.1",
       "npm:@types/node": "npm:@types/node@18.16.19",
-      "npm:randexp@0.5.3": "npm:randexp@0.5.3"
+      "npm:randexp@0.5.3": "npm:randexp@0.5.3",
+      "npm:zod@3.23.8": "npm:zod@3.23.8"
     },
     "jsr": {
       "@std/assert@1.0.0-rc.2": {
@@ -19,6 +21,10 @@
       }
     },
     "npm": {
+      "@faker-js/faker@8.4.1": {
+        "integrity": "sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==",
+        "dependencies": {}
+      },
       "@types/node@18.16.19": {
         "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA==",
         "dependencies": {}
@@ -36,6 +42,10 @@
       },
       "ret@0.2.2": {
         "integrity": "sha512-M0b3YWQs7R3Z917WRQy1HHA7Ba7D8hvZg6UE5mLykJxQVE2ju0IXbGlaHPPlkY+WN7wFP+wUMXmBFA0aV6vYGQ==",
+        "dependencies": {}
+      },
+      "zod@3.23.8": {
+        "integrity": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==",
         "dependencies": {}
       }
     }
@@ -60,7 +70,9 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1.0.0-rc.2",
-      "npm:randexp@0.5.3"
+      "npm:@faker-js/faker@8.4.1",
+      "npm:randexp@0.5.3",
+      "npm:zod@3.23.8"
     ]
   }
 }
