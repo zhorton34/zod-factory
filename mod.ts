@@ -1,1 +1,1 @@
-export * from "./factory.mod.ts"
+export * from "./factory/mod.ts"
