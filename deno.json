@@ -9,10 +9,10 @@
     "author": "Zak H <zak@cleancode.studio>",
     "exports": "./mod.ts",
     "compilerOptions": {
-        "strict": false
+        "strict": true
     },
     "lint": {
-        "include": ["factory/factory.ts", "factory/mod.ts"]
+        "include": ["factory/*.ts", "./factory/zod-mock/*.ts"]
     },
     "tasks": {
         "test": "deno test --allow-all",
@@ -27,7 +27,7 @@
     "imports": {
         "@std/randexp": "npm:randexp@0.5.3",
         "@std/assert": "jsr:@std/assert@1.0.0-rc.2",
-        "@std/faker": "https://esm.sh/@faker-js/faker@8.4.1",
-        "@std/zod": "https://deno.land/x/zod@v3.23.8/mod.ts"
+        "@std/faker": "npm:@faker-js/faker@8.4.1",
+        "@std/zod": "npm:zod@3.23.8"
     }
 }

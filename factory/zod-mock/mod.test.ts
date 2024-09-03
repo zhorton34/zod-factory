@@ -719,17 +719,17 @@ Deno.test('zod-mock', async (t) => {
 
 Deno.test("Potential infinite loop or memory exhaustion tests", async (t) => {
     await t.step('should handle deep recursive structures without stack overflow', () => {
-        const deeplyNestedSchema = z.object({
+        const deeplyNestedSchema: z.ZodType<unknown> = z.object({
             value: z.number(),
             nested: z.lazy(() => deeplyNestedSchema.optional()),
         });
 
         const result = generateMock(deeplyNestedSchema);
         let depth = 0;
-        let current: any = result;
-        while (current.nested) {
+        let current = result;
+        while ((current as { nested: unknown }).nested as unknown as object) {
             depth++;
-            current = current.nested;
+            current = (current as { nested: unknown }).nested as unknown as object;
             if (depth > 1000) {
                 throw new Error('Possible infinite recursion detected');
             }
@@ -740,18 +740,18 @@ Deno.test("Potential infinite loop or memory exhaustion tests", async (t) => {
     await t.step('should handle cyclical references gracefully', () => {
         // This test checks if the mock generator can handle potential cyclical structures
         // without causing an infinite loop
-        const cyclicalSchema = z.lazy(() => z.object({
+        const cyclicalSchema: z.ZodType<unknown> = z.lazy(() => z.object({
             id: z.string(),
             related: z.array(cyclicalSchema).optional(),
         }));
 
-        const result = generateMock(cyclicalSchema);
-        assert(result.id);
-        if (result.related) {
-            assert(Array.isArray(result.related));
+        const result = generateMock(cyclicalSchema) as { id: string, related: object[] };
+        assert((result as { id: string }).id);
+        if ((result as { related: unknown }).related as unknown as object) {
+            assert(Array.isArray(result.related as unknown as object[]));
             // Check only the first level to avoid potential infinite loop
-            if (result.related.length > 0) {
-                assert(result.related[0].id);
+            if ((result.related as unknown as object[]).length > 0) {
+                assert((result.related[0] as { id: string }).id);
             }
         }
     });
