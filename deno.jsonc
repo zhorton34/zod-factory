@@ -1,0 +1,8 @@
+{
+    "name": "@findhow/testing",
+    "exports": "./mod.ts",
+    "imports": {
+        "@std/faker": "https://esm.sh/@faker-js/faker@8.4.1",
+        "@std/zod": "https://deno.land/x/zod@v3.23.8/mod.ts",
+    }
+}
