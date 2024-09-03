@@ -20,7 +20,6 @@ We'll define a more complex schema with nested objects and arrays:
 
 ```typescript
 import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts';
-import { faker, Faker } from 'https://esm.sh/@faker-js/faker@8.4.1';
 
 // Define a deeply nested Zod schema for a complex user profile
 const ComplexUserSchema = z.object({
@@ -54,68 +53,10 @@ const ComplexUserSchema = z.object({
 
 #### Step 2: Set Up the Factory Using the `faker` Callback
 
-1. Create schema
-```typescript
-import { z } from 'https://deno.land/x/zod@v3.20.2/mod.ts';
-
-// Define a deeply nested Zod schema for a complex user profile
-export const ComplexUserSchema = z.object({
-  id: z.string().uuid(),                             // Unique identifier for the user
-  profile: z.object({                                // Nested profile object
-    name: z.string(),                                 // User's name
-    email: z.string().email(),                        // User's email
-    bio: z.string().optional(),                       // Optional bio for the user
-    socialMedia: z.array(z.object({                   // Array of nested social media accounts
-      platform: z.enum(['twitter', 'facebook', 'instagram']), // Enum for social media platform
-      username: z.string(),                            // Username for the social media account
-    })),
-  }),
-  posts: z.array(z.object({                           // Array of nested posts
-    title: z.string(),                                 // Title of the post
-    content: z.string(),                               // Content of the post
-    tags: z.array(z.string()),                         // Array of tags for the post
-    publishedAt: z.date(),                             // Date when the post was published
-  })),
-  settings: z.object({                                // Nested settings object
-    theme: z.enum(['light', 'dark']),                  // User interface theme preference
-    notifications: z.boolean(),                        // Boolean for whether notifications are enabled
-    preferences: z.record(z.string(), z.union([        // Preferences as a record (key-value pairs)
-      z.string(), 
-      z.number(), 
-      z.boolean(),
-    ])),
-  }),
-});
-```
-
-2. Set up factory to generate mock data for zod schema (`ComplexUserSchema`) with `factory` function allowing us to provide the schema and a callback with access to `faker` data generation.
-
 ```typescript
 import { factory } from './mod.ts'; // Import the factory implementation
 import { ComplexUserSchema } from './schema.ts';
  
-/**
- * Creating Custom Faker
- *
- * This configuration allows you to create a custom Faker instance
- * for generating localized or customized fake data.
- *
- * @note You can create your own Faker instance to override default settings,
- *       such as the locale (e.g., non-US English faked data).
- *
- * @note A default faker is passed into the callback when creating factories,
- *       but you're not obligated to use it.
- *
- * Example of creating a custom Faker instance:
- * ```
- * import { Faker, en } from 'https://cdn.skypack.dev/@faker-js/faker?dts';
- * const customFaker = new Faker({ locales: [en] })
- * ```
- *
- * @var \Faker\Generator
- */
-
-// Create a factory for the ComplexUser schema
 const ComplexUserFactory = factory(ComplexUserSchema, (faker) => ({
   id: faker.string.uuid(),                                  // Generate a random UUID for the user ID
   profile: {                                                 // Generate nested profile data
@@ -152,7 +93,10 @@ const ComplexUserFactory = factory(ComplexUserSchema, (faker) => ({
 
 #### Step 3: Using the `ComplexUserFactory`
 
-You can now use the `ComplexUserFactory` to generate deeply nested mock data.
+- Create a single complex user mock object
+- Create multiple complex user mock objects
+- Create a complex user with specific attributes (override a single or multiple properties to be deterministic)
+- Create a complex user with a specific number of posts (override a single or multiple properties to be deterministic)
 
 ```typescript
 // Create a single complex user mock object
