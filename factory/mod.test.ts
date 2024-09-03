@@ -125,7 +125,6 @@ Deno.test("Factory - performance tests", async (t) => {
         const results = testFactory.createMany(1000);
         const end = performance.now();
         assertEquals(results.length, 1000);
-        console.log(`Performance test: createMany(100) took ${end - start}ms`);
     });
 })
 
@@ -294,8 +293,6 @@ Deno.test("Factory - complex schema tests", async (t) => {
             firm_file_number: faker.string.numeric(9)
         })).create();
         
-        console.log(JSON.stringify(property, null, 2));
-
         // Validate that only the properties from SouthLawPropertySchema are present
         const propertyKeys = Object.keys(property);
         const schemaKeys = Object.keys(SouthLawPropertySchema.shape);

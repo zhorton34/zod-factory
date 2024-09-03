@@ -735,7 +735,6 @@ Deno.test("Potential infinite loop or memory exhaustion tests", async (t) => {
             }
         }
         assert(depth > 0, 'Should generate at least some nested levels');
-        console.log(`Generated nested structure with depth: ${depth}`);
     });
 
     await t.step('should handle cyclical references gracefully', () => {

@@ -11,6 +11,9 @@
     "compilerOptions": {
         "strict": false
     },
+    "lint": {
+        "include": ["factory/factory.ts", "factory/mod.ts"]
+    },
     "tasks": {
         "test": "deno test --allow-all",
         "fmt": "deno fmt",
