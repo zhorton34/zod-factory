@@ -1,10 +1,30 @@
 {
-    "name": "@findhow/testing",
+    "name": "@findhow/zod-factory",
+    "version": "0.0.1",
+    "description": "A library for generating mock data based on a Zod schema",
+    "license": "MIT",
+    "repository": "https://github.com/zhorton34/zod-factory",
+    "homepage": "https://github.com/zhorton34/zod-factory",
+    "bugs": "https://github.com/zhorton34/zod-factory/issues",
+    "author": "Zak H <zak@cleancode.studio>",
     "exports": "./mod.ts",
+    "compilerOptions": {
+        "strict": false
+    },
+    "tasks": {
+        "test": "deno test --allow-all",
+        "fmt": "deno fmt",
+        "lint": "deno lint",
+        "build": "deno compile --target=deno --output=./dist/mod.ts ./mod.ts",
+        "bench": "deno bench --allow-all",
+        "run": "deno run --allow-all ./mod.ts",
+        "coverage": "deno test --coverage",
+        "docs": "deno doc --allow-all ./mod.ts"
+    },
     "imports": {
-        "@std/assert": "https://jsr.io/@std/assert",
-        "@std/randexp": "https://esm.sh/randexp@0.8.0",
-        "@std/zod": "https://deno.land/x/zod@v3.23.8/mod.ts",
-        "@std/faker": "https://esm.sh/@faker-js/faker@8.4.1"
+        "@std/randexp": "npm:randexp@0.5.3",
+        "@std/assert": "jsr:@std/assert@1.0.0-rc.2",
+        "@std/faker": "https://esm.sh/@faker-js/faker@8.4.1",
+        "@std/zod": "https://deno.land/x/zod@v3.23.8/mod.ts"
     }
 }

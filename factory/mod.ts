@@ -1,4 +1,4 @@
-import { z } from '@std/zod';
+import type { z } from '@std/zod';
 import { Faker, en } from '@std/faker';
 import { generateMock } from './zod-mock/mod.ts';
 
