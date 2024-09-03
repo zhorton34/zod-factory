@@ -1,22 +1,175 @@
-# Zod Factory (Deno)
+# [Deno] Zod Factory 
 
+<small>
 A factory is a function that generates mock data based on a given schema. It is useful for generating test data for your application.
+</small>
 
-## Peer Dependencies (Need these for factory to work)
+### Peer Dependencies 
+> _Required dependencies for factory to work_
+<small>
+
+
 - `https://deno.land/x/zod@v3.23.8/mod.ts`
-- `https://esm.sh/@faker-js/faker@8.4.1`
 
+- `https://esm.sh/@faker-js/faker@8.4.1`
+</small>
 
 ## Usage
+<small>
 To set up a factory for a deeply nested schema using the `faker` callback, you follow a similar approach to the basic schema example, but you need to account for the nested structure when defining your `faker` callback. 
+</small>
+
+### Step 1: Define a Simple Zod Schema
+
+> _First, we'll define a simple schema using Zod for a user profile:_
+
+```typescript
+import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts';  // Define a simple Zod schema for a user profile
+
+export const UserSchema = z.object({   
+    id: z.string().uuid(),           // Unique identifier for the user  
+    name: z.string(),                // User's name  
+    email: z.string().email(),       // User's email  
+    age: z.number().int().positive() // User's age 
+});
+```
+
+### Step 2. Define a Simple Zod Factory
+
+> _Now we'll define a simple factory using the `factory` function and the `UserSchema` we just created:_
+
+```typescript 
+import { factory } from 'https://github.com/zhorton34/zod-factory/mod.ts';
+import { UserSchema } from './user.schema.ts'
+
+export const UserFactory = factory(UserSchema, (faker) => ({
+    id: faker.string.uuid(),           
+    name: faker.person.fullName(),     
+    email: faker.internet.email(),     
+    age: faker.number.int({ min: 18, max: 99 })
+}));
+```
+
+### Step 3: Use the Factory to Generate Mock Data
+
+> _Then we'll use the factory to generate mock data:_
+
+```typescript
+import { UserFactory } from "./user.factory.ts"
+
+console.log(UserFactory.create());
+```
+**Outputs (random values will be generated each time)**
+```
+{
+  id: 'd81b154e-4fa4-11ec-81d3-0242ac130003',
+  name: 'Jane Doe',
+  email: 'jane.doe@example.com',
+  age: 34
+}
+```
+
+### Step 4: Create Multiple Users
+
+> _We can also create multiple users_
+
+```typescript
+const users = UserFactory.createMany(2);
+
+console.log(users);
+```
+**Outputs (random values will be generated each time)**
+```
+[
+  {
+    id: 'd81b154e-4fa4-11ec-81d3-0242ac130003',
+    name: 'Jane Doe',
+    email: 'jane.doe@example.com',
+    age: 34
+  },
+  {
+    id: 'd81b154e-4fa4-11ec-81d3-0242ac130003',
+    name: 'John Don',
+    email: 'John.don@example.com',
+    age: 31
+  }
+]
+```
+
+### Step 5: Create a User with Specific Attributes
+
+> _If you need to override a single or multiple properties to be deterministic, you can pass in an object to the `create` method:_
+
+```typescript
+const customUser = UserFactory.create({
+  name: 'John Doe',
+  email: 'john.doe@example.com',
+  age: 25
+});
+
+console.log(customUser);
+```
+
+**Outputs (random values will be generated each time)**
+```
+{
+  id: 'd81b154e-4fa4-11ec-81d3-0242ac130003',
+  name: 'John Doe',
+  email: 'john.doe@example.com',
+  age: 25
+}
+```
+
+### Step 6: Create many users with specific attributes
+
+> _We can also create many users with specific attributes_
+
+```typescript
+const customUsers = UserFactory.createMany(3, { age: 25 })
+
+console.log(customUsers)
+```
+
+**outputs (random values will be generated each time accept for age which is set to 25)**
+```
+[
+  {
+    id: 'abc1b154e-4fa4-11ec-81d3-0242ac130024',
+    name: 'Timmy Bob',
+    email: 'timmy.bob@example.com',
+    age: 25
+  },
+  {
+    id: 'd81b154e-4fa4-11ec-81d3-0242ac130003',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    age: 25
+  },
+{
+    id: 'aa2b154e-4fa4-11ec-81d3-0242ac130003',
+    name: 'Sarah Black',
+    email: 'sarah.black@example.com',
+    age: 25
+  },
+]
+```
+
+### Explanation
+
+-   **`UserSchema`**: Defines the shape of our user data, specifying the types and constraints.
+-   **`UserFactory`**: Uses the `faker` library to dynamically generate mock data conforming to `UserSchema`.
+-   **`create` and `createMany`**: Methods to generate one or many instances of user data.
+-   **`attributes`**: An optional parameter to override generated values for a single or multiple properties to be deterministic.
+
+
 
 ### Example: Setting Up a Factory for a Deeply Nested Schema
 
-Let's create a `ComplexUserFactory` for generating mock data based on a deeply nested schema. This will demonstrate how to handle nested objects and arrays while still utilizing the `faker` callback for dynamic data generation.
+> Let's create a `ComplexUserFactory` for generating mock data based on a deeply nested schema. This will demonstrate how to handle nested objects and arrays while still utilizing the `faker` callback for dynamic data generation.
 
 #### Step 1: Define the Deeply Nested Zod Schema
 
-We'll define a more complex schema with nested objects and arrays:
+> _We'll define a more complex schema with nested objects and arrays:_
 
 ```typescript
 import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts';
