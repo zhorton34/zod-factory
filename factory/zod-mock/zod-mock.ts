@@ -1,13 +1,6 @@
     import { Faker, faker, en } from '@std/faker';
     import RandExp from '@std/randexp';
-    import {
-        util,
-        z,
-        type ZodRecord,
-        type ZodString,
-        type ZodType,
-        type ZodTypeAny,
-    } from '@std/zod';
+    import { z, type ZodTypeAny } from '@std/zod';
     import {
         type MockeryMapper,
         mockeryMapper as defaultMapper,
@@ -56,17 +49,18 @@
         }), {});
     });
 
-    function parseRecord<
-        Key extends ZodType<string | number | symbol> = ZodString,
-        Value extends ZodTypeAny = ZodTypeAny,
-    >(zodRef: ZodRecord<Key, Value>, options?: GenerateMockOptions) {
+    function parseRecord(
+        zodRef: z.ZodRecord,
+        options?: GenerateMockOptions
+    ) {
         const recordKeysLength = options?.recordKeysLength || 1;
+        const def = (zodRef as unknown as { _zod: { def: { keyType: ZodTypeAny; valueType: ZodTypeAny } } })._zod.def;
 
         return new Array(recordKeysLength).fill(null).reduce((prev) => {
             return {
                 ...prev,
-                [generateMock(zodRef.keySchema, options)]: generateMock(
-                    zodRef.valueSchema,
+                [String(generateMock(def.keyType, options))]: generateMock(
+                    def.valueType,
                     options
                 ),
             };
@@ -98,20 +92,6 @@
                     lower === lowerCaseKeyName || lower === withoutDashesUnderscores
                         ? keyName
                         : undefined;
-
-                // Skipping depreciated items
-                // const depreciated: Record<string, string[]> = {
-                //   random: ['image', 'number', 'float', 'uuid', 'boolean', 'hexaDecimal'],
-                // };
-                // if (
-                //   Object.keys(depreciated).find((key) =>
-                //     key === sectionKey
-                //       ? depreciated[key].find((fn) => fn === fnName)
-                //       : false
-                //   )
-                // ) {
-                //   return undefined;
-                // }
 
                 if (fnName) {
                     // TODO: it would be good to clean up these type castings
@@ -149,16 +129,25 @@
         options?: GenerateMockOptions,
     ): string {
         const fakerInstance = options?.faker || faker;
-        const { checks = [] } = zodRef._def;
 
-        const regexCheck = checks.find((check) => check.kind === 'regex');
-        if (regexCheck && 'regex' in regexCheck) {
-            const generator = new RandExp(regexCheck.regex);
+        // In Zod 4, checks are accessed via _zod.def.checks and direct properties
+        const zodAny = zodRef as unknown as {
+            minLength: number | null;
+            maxLength: number | null;
+            format: string | null;
+            _zod: { def: { checks?: Array<{ _zod: { def: { check: string; pattern?: RegExp; format?: string; minimum?: number } } }> }; bag?: Record<string, unknown> };
+        };
+
+        const checks = zodAny._zod.def.checks || [];
+
+        // Check for regex
+        const regexCheck = checks.find((check) => check._zod?.def?.format === 'regex');
+        if (regexCheck && regexCheck._zod?.def?.pattern) {
+            const generator = new RandExp(regexCheck._zod.def.pattern);
             generator.randInt = (min: number, max: number) =>
                 fakerInstance.number.int({ min, max });
-            const max = checks.find((check) => check.kind === 'max');
-            if (max && 'value' in max && typeof max.value === 'number') {
-                generator.max = max.value;
+            if (zodAny.maxLength != null) {
+                generator.max = zodAny.maxLength;
             }
             const genRegString = generator.gen();
             return genRegString;
@@ -172,25 +161,18 @@
                 return generator();
             }
         }
+
         const stringOptions: {
             min?: number;
             max?: number;
         } = {};
 
-        checks.forEach((item) => {
-            switch (item.kind) {
-                case 'min':
-                    stringOptions.min = item.value;
-                    break;
-                case 'max':
-                    stringOptions.max = item.value;
-                    break;
-                case 'length':
-                    stringOptions.min = item.value;
-                    stringOptions.max = item.value;
-                    break;
-            }
-        });
+        if (zodAny.minLength != null) {
+            stringOptions.min = zodAny.minLength;
+        }
+        if (zodAny.maxLength != null) {
+            stringOptions.max = zodAny.maxLength;
+        }
 
         const sortedStringOptions = {
             ...stringOptions,
@@ -218,7 +200,11 @@
                 ? fakerInstance.lorem.word()
                 : fakerInstance.lorem.word({ length: targetStringLength });
         const dateGenerator = () => fakerInstance.date.recent().toISOString();
-        const stringGenerators = {
+
+        // In Zod 4, format is a direct property on ZodString (e.g. "email", "uuid", "url", "datetime")
+        const format = zodAny.format;
+
+        const stringGenerators: Record<string, FakerFunction> = {
             default: defaultGenerator,
             email: fakerInstance.internet.email,
             uuid: fakerInstance.string.uuid,
@@ -227,33 +213,42 @@
             name: fakerInstance.person.fullName,
             date: dateGenerator,
             dateTime: dateGenerator,
-            colorHex: fakerInstance.internet.color,
-            color: fakerInstance.internet.color,
-            backgroundColor: fakerInstance.internet.color,
-            textShadow: fakerInstance.internet.color,
-            textColor: fakerInstance.internet.color,
-            textDecorationColor: fakerInstance.internet.color,
-            borderColor: fakerInstance.internet.color,
-            borderTopColor: fakerInstance.internet.color,
-            borderRightColor: fakerInstance.internet.color,
-            borderBottomColor: fakerInstance.internet.color,
-            borderLeftColor: fakerInstance.internet.color,
-            borderBlockStartColor: fakerInstance.internet.color,
-            borderBlockEndColor: fakerInstance.internet.color,
-            borderInlineStartColor: fakerInstance.internet.color,
-            borderInlineEndColor: fakerInstance.internet.color,
-            columnRuleColor: fakerInstance.internet.color,
-            outlineColor: fakerInstance.internet.color,
+            datetime: dateGenerator,
+            colorHex: fakerInstance.color.rgb,
+            color: fakerInstance.color.rgb,
+            backgroundColor: fakerInstance.color.rgb,
+            textShadow: fakerInstance.color.rgb,
+            textColor: fakerInstance.color.rgb,
+            textDecorationColor: fakerInstance.color.rgb,
+            borderColor: fakerInstance.color.rgb,
+            borderTopColor: fakerInstance.color.rgb,
+            borderRightColor: fakerInstance.color.rgb,
+            borderBottomColor: fakerInstance.color.rgb,
+            borderLeftColor: fakerInstance.color.rgb,
+            borderBlockStartColor: fakerInstance.color.rgb,
+            borderBlockEndColor: fakerInstance.color.rgb,
+            borderInlineStartColor: fakerInstance.color.rgb,
+            borderInlineEndColor: fakerInstance.color.rgb,
+            columnRuleColor: fakerInstance.color.rgb,
+            outlineColor: fakerInstance.color.rgb,
             phoneNumber: fakerInstance.phone.number,
         };
 
-        const stringType = (Object.keys(stringGenerators).find(
-            (genKey) =>
-                genKey.toLowerCase() === lowerCaseKeyName ||
-                checks.find((item) =>
-                    item.kind.toUpperCase() === genKey.toUpperCase()
-                ),
-        ) as keyof typeof stringGenerators) || null;
+        // Match by format (Zod 4 string format like "email", "uuid", "url", "datetime")
+        // or by key name
+        let stringType: string | null = null;
+
+        if (format) {
+            stringType = (Object.keys(stringGenerators).find(
+                (genKey) => genKey.toLowerCase() === format.toLowerCase()
+            )) || null;
+        }
+
+        if (!stringType) {
+            stringType = (Object.keys(stringGenerators).find(
+                (genKey) => genKey.toLowerCase() === lowerCaseKeyName
+            )) || null;
+        }
 
         let generator: FakerFunction = defaultGenerator;
 
@@ -293,26 +288,11 @@
 
     function parseDate(zodRef: z.ZodDate, options?: GenerateMockOptions) {
         const fakerInstance = options?.faker || faker;
-        const { checks = [] } = zodRef._def;
-        let min: Date | undefined;
-        let max: Date | undefined;
 
-        checks.forEach((item: { kind: string, value: unknown }) => {
-            
-            if (item && item.kind && item.kind === 'min' || item.kind === 'max') {
-                const value = item.value;
-                if (value instanceof Date || (typeof value === 'number' && !isNaN(value))) {
-                    const dateValue = value instanceof Date ? value : new Date(value);
-                    if (item.kind === 'min') {
-                        min = dateValue;
-                    } else {
-                        max = dateValue;
-                    }
-                } else {
-                    console.warn(`Invalid ${item.kind} date value: ${value}`);
-                }
-            }
-        });
+        // In Zod 4, date constraints are in _zod.bag
+        const bag = (zodRef as unknown as { _zod: { bag?: { minimum?: Date; maximum?: Date } } })._zod?.bag || {};
+        const min: Date | undefined = bag.minimum instanceof Date ? bag.minimum : undefined;
+        const max: Date | undefined = bag.maximum instanceof Date ? bag.maximum : undefined;
 
         try {
             if (min !== undefined && max !== undefined) {
@@ -338,22 +318,23 @@
         options?: GenerateMockOptions,
     ): number {
         const fakerInstance = options?.faker || faker;
-        const { checks = [] } = zodRef._def;
-        const fakerOptions: unknown = {};
 
-        checks.forEach((item) => {
-            switch (item.kind) {
-                case 'int':
-                    break;
-                case 'min':
-                    (fakerOptions as { min?: number }).min = item.value;
-                    break;
-                case 'max':
-                    (fakerOptions as { max?: number }).max = item.value;
-                    break;
-            }
-        });
-        return fakerInstance.number.int(fakerOptions as { min?: number; max?: number; });
+        // In Zod 4, number constraints are direct properties
+        const zodAny = zodRef as unknown as {
+            minValue: number;
+            maxValue: number;
+            isInt: boolean;
+        };
+
+        const fakerOptions: { min?: number; max?: number } = {};
+        if (zodAny.minValue !== -Infinity) {
+            fakerOptions.min = zodAny.minValue;
+        }
+        if (zodAny.maxValue !== Infinity) {
+            fakerOptions.max = zodAny.maxValue;
+        }
+
+        return fakerInstance.number.int(fakerOptions);
     }
 
     function parseOptional(
@@ -365,23 +346,27 @@
 
     const parseArray = depthControlled((zodRef: z.ZodArray<ZodTypeAny>, options?: GenerateMockOptions) => {
         const fakerInstance = options?.faker || faker;
-        let min = zodRef._def.minLength?.value ?? zodRef._def.exactLength?.value ?? 1; // Changed from 0 to 1
-        const max = zodRef._def.maxLength?.value ?? zodRef._def.exactLength?.value ?? 10;
+
+        // In Zod 4, array constraints are in _zod.bag
+        const bag = (zodRef as unknown as { _zod: { bag?: { minimum?: number; maximum?: number; length?: number } } })._zod?.bag || {};
+        let min = bag.minimum ?? bag.length ?? 1;
+        const max = bag.maximum ?? bag.length ?? 10;
 
         if (min > max) {
             min = max;
         }
         const targetLength = fakerInstance.number.int({ min, max });
         const results: unknown[] = [];
+        const elementType = getDefType(zodRef.element);
         for (let index = 0; index < targetLength; index++) {
             let value;
-            if (zodRef.element._def.typeName === 'ZodUndefined' && options?.backupMocks?.ZodUndefined) {
-                value = options.backupMocks.ZodUndefined(zodRef.element, options);
+            if (elementType === 'undefined' && options?.backupMocks?.ZodUndefined) {
+                value = options.backupMocks.ZodUndefined(zodRef.element, options as GenerateMockOptions);
             } else {
                 value = generateMock(zodRef.element, {
                     ...options,
                     backupMocks: options?.backupMocks
-                });
+                } as GenerateMockOptions);
             }
             results.push(value);
         }
@@ -390,16 +375,20 @@
 
     const parseSet = depthControlled((zodRef: z.ZodSet<never>, options?: GenerateMockOptions) => {
         const fakerInstance = options?.faker || faker;
-        let min = zodRef._def.minSize?.value != null ? zodRef._def.minSize.value : 1;
-        const max = zodRef._def.maxSize?.value != null ? zodRef._def.maxSize.value : 5;
+
+        // In Zod 4, set constraints are in _zod.bag
+        const bag = (zodRef as unknown as { _zod: { bag?: { minimum?: number; maximum?: number } } })._zod?.bag || {};
+        let min = bag.minimum ?? 1;
+        const max = bag.maximum ?? 5;
 
         if (min > max) {
             min = max;
         }
         const targetLength = fakerInstance.number.int({ min, max });
-        const results = new Set<ZodTypeAny>();
+        const valueType = (zodRef as unknown as { _zod: { def: { valueType: ZodTypeAny } } })._zod.def.valueType;
+        const results = new Set<unknown>();
         while (results.size < targetLength) {
-            results.add(generateMock<ZodTypeAny>(zodRef._def.valueType, options));
+            results.add(generateMock(valueType as ZodTypeAny, options as GenerateMockOptions));
         }
 
         return results;
@@ -407,72 +396,85 @@
 
     const parseMap = depthControlled((zodRef: z.ZodMap<never>, options?: GenerateMockOptions) => {
         const targetLength = options?.mapEntriesLength ?? 1;
-        const results = new Map<ZodTypeAny, ZodTypeAny>();
+        const def = (zodRef as unknown as { _zod: { def: { keyType: ZodTypeAny; valueType: ZodTypeAny } } })._zod.def;
+        const results = new Map<unknown, unknown>();
 
         while (results.size < targetLength) {
             results.set(
-                generateMock<ZodTypeAny>(zodRef._def.keyType, options),
-                generateMock<ZodTypeAny>(zodRef._def.valueType, options)
+                generateMock(def.keyType as ZodTypeAny, options as GenerateMockOptions),
+                generateMock(def.valueType as ZodTypeAny, options as GenerateMockOptions)
             );
         }
         return results;
     });
 
     function parseEnum(
-        zodRef: z.ZodEnum<never> | z.ZodNativeEnum<never>,
+        zodRef: z.ZodEnum<never>,
         options?: GenerateMockOptions,
     ) {
         const fakerInstance = options?.faker || faker;
-        const values = zodRef._def.values as Array<z.infer<typeof zodRef>>;
+        // In Zod 4, enum values are in .options (array)
+        const values = (zodRef as unknown as { options: Array<z.infer<typeof zodRef>> }).options;
         return fakerInstance.helpers.arrayElement(values);
     }
-    function parseDiscriminatedUnion<
-        Discriminator extends string,
-        Options extends z.ZodDiscriminatedUnionOption<Discriminator>[]
-    >(
-        zodRef: z.ZodDiscriminatedUnion<Discriminator, Options>,
+
+    function parseDiscriminatedUnion(
+        zodRef: z.ZodDiscriminatedUnion,
         options?: GenerateMockOptions,
     ) {
         const fakerInstance = options?.faker || faker;
-        // Map the options to various possible union cases
-        const potentialCases = [...(zodRef._def.options as unknown as Map<string, ZodTypeAny>).values()];
+        // In Zod 4, discriminated union options is an array in _zod.def.options
+        const def = (zodRef as unknown as { _zod: { def: { options: ZodTypeAny[] } } })._zod.def;
+        const potentialCases = def.options;
         const mocked = fakerInstance.helpers.arrayElement(potentialCases);
         return generateMock(mocked, options);
     }
 
     function parseNativeEnum(
-        zodRef: z.ZodNativeEnum<never>,
+        zodRef: z.ZodEnum<never>,
         options?: GenerateMockOptions,
     ): unknown {
         const fakerInstance = options?.faker || faker;
-        const values = util.getValidEnumValues(zodRef.enum);
+        // In Zod 4, z.nativeEnum() returns a ZodEnum-like with .enum property
+        const enumObj = (zodRef as unknown as { enum: Record<string, string | number> }).enum;
+        // Extract valid enum values (filter reverse mappings for numeric enums)
+        const values = Object.entries(enumObj)
+            .filter(([_key, value]) =>
+                typeof value === 'number' || (typeof value === 'string' && !(value in enumObj))
+            )
+            .map(([, v]) => v);
         return fakerInstance.helpers.arrayElement(values);
     }
 
-    function parseLiteral(zodRef: z.ZodLiteral<unknown>): unknown {
-        return zodRef._def.value;
+    // deno-lint-ignore no-explicit-any
+    function parseLiteral(zodRef: z.ZodLiteral<any>): unknown {
+        // In Zod 4, literal value is accessed via .value getter
+        return (zodRef as unknown as { value: unknown }).value;
     }
 
     function parseTransform(
-        zodRef: z.ZodTransformer<never> | z.ZodEffects<never>,
+        zodRef: z.ZodPipe<ZodTypeAny, ZodTypeAny>,
         options?: GenerateMockOptions,
-    ): ZodTypeAny {
-        const input = generateMock(zodRef._def.schema, options);
+    ): unknown {
+        // In Zod 4, .transform() returns ZodPipe with _zod.def.in and _zod.def.out (ZodTransform)
+        const def = (zodRef as unknown as { _zod: { def: { in: ZodTypeAny; out: { _zod: { def: { transform: (input: unknown) => unknown } } } } } })._zod.def;
+        const input = generateMock(def.in, options);
 
-        const effect = zodRef._def.effect.type === 'transform'
-            ? zodRef._def.effect
-            : { transform: () => input };
+        if (def.out && def.out._zod?.def?.transform) {
+            return def.out._zod.def.transform(input);
+        }
 
-        return effect.transform(input, { addIssue: () => undefined, path: [] });
+        return input;
     }
 
     function parseUnion(
-        zodRef: z.ZodUnion<Readonly<[ZodTypeAny, ...ZodTypeAny[]]>>,
+        zodRef: z.ZodUnion<readonly [ZodTypeAny, ...ZodTypeAny[]]>,
         options?: GenerateMockOptions,
-    ): ZodTypeAny {
+    ): unknown {
         const fakerInstance = options?.faker || faker;
-        // Map the options to various possible mock values
-        const potentialCases = [...zodRef._def.options.values()];
+        // In Zod 4, union options is a plain array in _zod.def.options
+        const def = (zodRef as unknown as { _zod: { def: { options: ZodTypeAny[] } } })._zod.def;
+        const potentialCases = def.options;
         const mocked = fakerInstance.helpers.arrayElement(potentialCases);
         return generateMock(mocked, options);
     }
@@ -480,23 +482,28 @@
     function parseZodIntersection(
         zodRef: z.ZodIntersection<ZodTypeAny, ZodTypeAny>,
         options?: GenerateMockOptions,
-    ): ZodTypeAny {
-        const left = generateMock(zodRef._def.left, options);
-        const right = generateMock(zodRef._def.right, options);
+    ): unknown {
+        // In Zod 4, intersection uses _zod.def.left and _zod.def.right
+        const def = (zodRef as unknown as { _zod: { def: { left: ZodTypeAny; right: ZodTypeAny } } })._zod.def;
+        const left = generateMock(def.left, options);
+        const right = generateMock(def.right, options);
 
-        return Object.assign(left, right);
+        return Object.assign(left as object, right as object);
     }
+
     function parseZodTuple(
         zodRef: z.ZodTuple<[], never>,
         options?: GenerateMockOptions,
-    ): ZodTypeAny[] {
-        const results: ZodTypeAny[] = [];
-        zodRef._def.items.forEach((def) => {
-            results.push(generateMock(def, options));
+    ): unknown[] {
+        // In Zod 4, tuple uses _zod.def.items and _zod.def.rest
+        const def = (zodRef as unknown as { _zod: { def: { items: ZodTypeAny[]; rest: ZodTypeAny | null } } })._zod.def;
+        const results: unknown[] = [];
+        def.items.forEach((itemDef) => {
+            results.push(generateMock(itemDef, options));
         });
 
-        if (zodRef._def.rest !== null) {
-            const next = parseArray(z.array(zodRef._def.rest), options as GenerateMockOptions);
+        if (def.rest !== null) {
+            const next = parseArray(z.array(def.rest), options as GenerateMockOptions);
             if (Array.isArray(next)) {
                 results.push(...next);
             }
@@ -505,11 +512,13 @@
     }
 
     function parseZodFunction(
-        zodRef: z.ZodFunction<z.ZodTuple<[ZodTypeAny]>, ZodTypeAny>,
+        zodRef: ZodTypeAny,
         options?: GenerateMockOptions,
     ) {
+        // In Zod 4, function uses _zod.def.output
+        const def = (zodRef as unknown as { _zod: { def: { output: ZodTypeAny } } })._zod.def;
         return function zodMockFunction() {
-            return generateMock(zodRef._def.returns, options);
+            return generateMock(def.output, options);
         };
     }
 
@@ -518,11 +527,13 @@
         options?: GenerateMockOptions,
     ) {
         const fakerInstance = options?.faker || faker;
+        // In Zod 4, defaultValue is a direct value (not a function), innerType is in _zod.def
+        const def = (zodRef as unknown as { _zod: { def: { defaultValue: unknown; innerType: ZodTypeAny } } })._zod.def;
         // Use the default value 50% of the time
         if (fakerInstance.datatype.boolean()) {
-            return zodRef._def.defaultValue();
+            return def.defaultValue;
         } else {
-            return generateMock(zodRef._def.innerType, options);
+            return generateMock(def.innerType, options);
         }
     }
 
@@ -530,82 +541,120 @@
         zodRef: z.ZodPromise<ZodTypeAny>,
         options?: GenerateMockOptions,
     ) {
-        return Promise.resolve(generateMock(zodRef._def.type, options));
-    }
-
-    function parseBranded(
-        zodRef: z.ZodBranded<ZodTypeAny, never>,
-        options?: GenerateMockOptions,
-    ) {
-        return generateMock(zodRef.unwrap(), options);
+        // In Zod 4, promise uses _zod.def.innerType
+        const def = (zodRef as unknown as { _zod: { def: { innerType: ZodTypeAny } } })._zod.def;
+        return Promise.resolve(generateMock(def.innerType, options));
     }
 
     function parseLazy(
         zodRef: z.ZodLazy<ZodTypeAny>,
         options?: GenerateMockOptions
     ) {
-        return generateMock(zodRef._def.getter(), options);
+        // In Zod 4, lazy uses _zod.def.getter
+        const def = (zodRef as unknown as { _zod: { def: { getter: () => ZodTypeAny } } })._zod.def;
+        return generateMock(def.getter(), options);
     }
 
-    function parseUuid(_zodRef: z.ZodString, _options: GenerateMockOptions): string {
-        return faker.string.uuid();
+    function parseCustom(
+        zodRef: ZodTypeAny,
+        options?: GenerateMockOptions,
+    ): unknown {
+        // z.custom() and z.any() in Zod 4
+        const defType = getDefType(zodRef);
+
+        // Check for direct type backup mock
+        if (options?.backupMocks?.[defType]) {
+            return options.backupMocks[defType](zodRef, options);
+        }
+        // Map defType to legacy backup mock key names
+        const legacyKeyMap: Record<string, string> = {
+            'any': 'ZodAny',
+            'custom': 'ZodCustom',
+            'unknown': 'ZodUnknown',
+        };
+        const legacyKey = legacyKeyMap[defType];
+        if (legacyKey && options?.backupMocks?.[legacyKey]) {
+            return options.backupMocks[legacyKey](zodRef, options);
+        }
+        // Fall back to ZodAny backup for any custom/any/unknown type
+        if (options?.backupMocks?.ZodAny) {
+            return options.backupMocks.ZodAny(zodRef, options);
+        }
+        if (options?.throwOnUnknownType) {
+            throw new ZodMockError(defType);
+        }
+        return undefined;
     }
 
-    // function parseEnum(zodRef: z.ZodEnum<any>, options: GenerateMockOptions) {
-    //     return faker.helpers.arrayElement(zodRef._def.values);
-    // }
+    /**
+     * Get the type string from a Zod schema's internal def
+     */
+    function getDefType(schema: ZodTypeAny): string {
+        return (schema as unknown as { _zod: { def: { type: string } } })._zod.def.type;
+    }
 
-    // function parseUnion(zodRef: z.ZodUnion<any>, options: GenerateMockOptions) {
-    //     const unionType = faker.helpers.arrayElement(zodRef._def.options);
-    //     return generateMock(unionType, options);
-    // }
+    /**
+     * Determine the mock handler for a schema using instanceof checks (Zod 4)
+     */
+    function getMockHandler(schema: ZodTypeAny): ((zodRef: unknown, options: GenerateMockOptions) => unknown) | undefined {
+        // In Zod 4, transforms produce ZodPipe wrapping ZodTransform
+        // Check ZodPipe first since it wraps transforms
+        if (schema instanceof z.ZodPipe) {
+            // Check if the out is a ZodTransform
+            const def = (schema as unknown as { _zod: { def: { out: ZodTypeAny } } })._zod.def;
+            if (def.out instanceof z.ZodTransform) {
+                return parseTransform as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+            }
+        }
 
-    // function parseRecord(zodRef: z.ZodRecord<any, any>, options: GenerateMockOptions) {
-    //     const length = faker.number.int({ min: 1, max: 3 });
-    //     return Array.from({ length }).reduce((acc) => {
-    //         const key = generateMock(zodRef.keySchema, options);
-    //         acc[key] = generateMock(zodRef.valueSchema, options);
-    //         return acc;
-    //     }, {});
-    // }
+        if (schema instanceof z.ZodObject) return depthControlled(parseObject) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodRecord) return parseRecord as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodArray) return parseArray as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodSet) return parseSet as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodMap) return parseMap as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodLazy) return depthControlled(parseLazy) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodUnion) {
+            // Check for discriminated union (has discriminator field)
+            const def = (schema as unknown as { _zod: { def: { discriminator?: string } } })._zod.def;
+            if (def.discriminator !== undefined) {
+                return parseDiscriminatedUnion as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+            }
+            return parseUnion as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        }
+        if (schema instanceof z.ZodIntersection) return parseZodIntersection as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodOptional) return parseOptional as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodNullable) return parseOptional as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodFunction) return parseZodFunction as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodPromise) return parseZodPromise as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodTuple) return parseZodTuple as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodString) return parseString as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodNumber) return parseNumber as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodBigInt) return parseNumber as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodBoolean) return parseBoolean as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodDate) return parseDate as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodEnum) {
+            // Check if this is actually a nativeEnum (entries have numeric values)
+            const entries = (schema as unknown as { _zod: { def: { entries: Record<string, unknown> } } })._zod.def.entries;
+            const hasNumericValues = Object.values(entries).some(v => typeof v === 'number');
+            const hasReverseMapping = Object.entries(entries).some(([_key, value]) =>
+                typeof value === 'number' && String(value) in entries
+            );
+            if (hasNumericValues && hasReverseMapping) {
+                return parseNativeEnum as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+            }
+            return parseEnum as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        }
+        if (schema instanceof z.ZodLiteral) return parseLiteral as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodDefault) return parseZodDefault as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodNaN) return (() => undefined) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodNull) return (() => null) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodVoid) return (() => undefined) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodUndefined) return (() => undefined) as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodCustom) return parseCustom as (zodRef: unknown, options: GenerateMockOptions) => unknown;
+        if (schema instanceof z.ZodAny) return parseCustom as (zodRef: unknown, options: GenerateMockOptions) => unknown;
 
-
-    const workerMap: Record<string, (zodRef: unknown, options: GenerateMockOptions) => unknown> = {
-        ZodObject: depthControlled(parseObject) as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodRecord: parseRecord as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodArray: parseArray as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodSet: parseSet as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodMap: parseMap as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodLazy: depthControlled(parseLazy) as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodUnion: parseUnion as (zodRef: unknown, options: GenerateMockOptions) => unknown,                  
-        ZodIntersection: parseZodIntersection as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodDiscriminatedUnion: parseDiscriminatedUnion as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodOptional: parseOptional as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodNullable: parseOptional as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodTransformer: parseTransform as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodEffects: parseTransform as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodFunction: parseZodFunction as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodPromise: parseZodPromise as (zodRef: unknown, options: GenerateMockOptions) => unknown, 
-        ZodTuple: parseZodTuple as (zodRef: unknown, options: GenerateMockOptions) => unknown,    
-        ZodString: parseString as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodNumber: parseNumber as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodBigInt: parseNumber as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodBoolean: parseBoolean as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodDate: parseDate as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodEnum: parseEnum as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodNativeEnum: parseNativeEnum as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodLiteral: parseLiteral as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodBranded: parseBranded as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodNull: () => null,
-        ZodNaN: () => undefined,
-        ZodDefault: parseZodDefault as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-        ZodVoid: () => undefined,
-        ZodUndefined: () => undefined,
-        ZodUuid: parseUuid as (zodRef: unknown, options: GenerateMockOptions) => unknown,
-    };
-    
-
-    type WorkerKeys = keyof typeof workerMap;
+        return undefined;
+    }
 
     export interface GenerateMockOptions {
         keyName?: string;
@@ -624,7 +673,7 @@
         /**
          * This is a mapping of field name to mock generator function.
          * This mapping can be used to provide backup mock
-         * functions for Zod types not yet implemented in {@link WorkerKeys}.
+         * functions for Zod types not yet implemented.
          * The functions in this map will only be used if this library
          * is unable to find an appropriate mocking function to use.
          */
@@ -657,13 +706,13 @@
          */
         faker?: FakerClass;
 
-        /**  
+        /**
          * Current depth in which a generator has created schemas for
         */
         currentDepth?: number;
 
         /**
-         * Max depth in at which point we will automatically return 
+         * Max depth in at which point we will automatically return
          */
         maxDepth?: number;
     }
@@ -671,7 +720,8 @@
     export function generateMock<T extends ZodTypeAny>(
         schema: T,
         options: GenerateMockOptions = {}
-    ): z.infer<T> {
+        // deno-lint-ignore no-explicit-any
+    ): any {
         const defaultOptions: GenerateMockOptions = {
             maxDepth: 10,
             currentDepth: 0,
@@ -682,13 +732,15 @@
         if (defaultOptions.seed !== undefined) {
             (defaultOptions.faker as Faker).seed(defaultOptions.seed);
         }
-    
+
         try {
-            if (schema._def.typeName === 'ZodUndefined' && defaultOptions.backupMocks?.ZodUndefined) {
+            const defType = getDefType(schema);
+
+            if (defType === 'undefined' && defaultOptions.backupMocks?.ZodUndefined) {
                 return defaultOptions.backupMocks.ZodUndefined(schema, defaultOptions);
             }
 
-            const mockFunction = workerMap[schema._def.typeName];
+            const mockFunction = getMockHandler(schema);
             if (mockFunction) {
                 // Pass the backupMocks and maxDepth to nested calls
                 return mockFunction(schema, {
@@ -696,10 +748,10 @@
                     backupMocks: defaultOptions.backupMocks,
                     maxDepth: defaultOptions.maxDepth,
                 });
-            } else if (defaultOptions.backupMocks?.[schema._def.typeName]) {
-                return defaultOptions.backupMocks[schema._def.typeName](schema, defaultOptions);
+            } else if (defaultOptions.backupMocks?.[defType]) {
+                return defaultOptions.backupMocks[defType](schema, defaultOptions);
             } else if (defaultOptions.throwOnUnknownType) {
-                throw new ZodMockError(schema._def.typeName);
+                throw new ZodMockError(defType);
             }
             return undefined;
         }

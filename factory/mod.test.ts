@@ -88,7 +88,7 @@ Deno.test("Factory - state tests", async (t) => {
 
     await t.step('factory - state with faker', () => {
         const newFactory = testFactory.state((faker) => ({
-            name: faker.name.firstName(),
+            name: faker.person.firstName(),
         }));
         const result = newFactory.create();
         validateSchema(TestSchema, result);
@@ -167,7 +167,7 @@ Deno.test("Factory - complex schema tests", async (t) => {
                 bio: faker.lorem.paragraph(),
                 socialMedia: Array.from({ length: faker.number.int({ min: 1, max: 3 }) }, () => ({
                     platform: faker.helpers.arrayElement(['twitter', 'facebook', 'instagram'] as const),
-                    username: faker.internet.userName(),
+                    username: faker.internet.username(),
                 })),
             },
         },
